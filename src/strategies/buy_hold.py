@@ -1,23 +1,17 @@
 """
-Einfachste Strategie: Einmaliger Kauf am Anfang, Halten bis zum Ende.
-Guter Startpunkt fuer Monat 2, um die Backtest-Engine zu testen.
+Beschreibung: Einmaliger Kauf am Anfang, Halten bis zum Ende.
 """
 
 import pandas as pd
 
+testPrices = pd.DataFrame({"Close": [100, 110, 90, 120]})
 
-def simulate_buy_and_hold(prices: pd.DataFrame, invest_amount: float) -> pd.Series:
-    """
-    Simuliert Buy&Hold: kauft am ersten Tag fuer invest_amount, haelt bis zum Ende.
+def sim_buy_and_hold(testPrices: pd.DataFrame, investAmount: float) -> pd.Series:
+    startPrice = testPrices["Close"].iloc[0]
+    shares = investAmount / startPrice
+    portfolioValue = testPrices["Close"] * shares
+    return portfolioValue
 
-    Args:
-        prices: DataFrame mit Spalte "Close", Index = Datum
-        invest_amount: Investierter Betrag in Euro
-
-    Returns:
-        Series mit dem Depotwert pro Tag
-    """
-    start_price = prices["Close"].iloc[0]
-    shares = invest_amount / start_price
-    portfolio_value = prices["Close"] * shares
-    return portfolio_value
+if __name__ == "__main__":
+    simRes = sim_buy_and_hold(testPrices, 1000)
+    print(simRes)
