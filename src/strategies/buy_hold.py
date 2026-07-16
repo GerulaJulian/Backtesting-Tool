@@ -15,3 +15,4 @@ def sim_buy_and_hold(testPrices: pd.DataFrame, investAmount: float) -> pd.Series
 if __name__ == "__main__":
     simRes = sim_buy_and_hold(testPrices, 1000)
     print(simRes)
+
