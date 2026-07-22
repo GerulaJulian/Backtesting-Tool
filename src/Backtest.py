@@ -2,7 +2,7 @@
 
 """
 from data_loader import load_price_data
-from strategies.buy_hold import sim_buy_and_hold
+from strategies.buy_hold import sim_buy_hold
 from strategies.dca import sim_dca
 import pandas as pd
 
@@ -13,9 +13,13 @@ def calculated_return(portfolioValue: pd.Series, investedAmount: float) -> float
 if __name__ == "__main__":
     investedAmount = 1000
     importedPrices = load_price_data("AAPL", "2024-01-01", "2025-01-01")
-    result = sim_dca(importedPrices, investedAmount)
-    amountBuyDay = len(result)
+    resultDCA = sim_dca(importedPrices, investedAmount)
+    resultBuyHold = sim_buy_hold(importedPrices, investedAmount)
+    amountBuyDay = len(resultDCA)
     sumInvestedAmount = investedAmount * amountBuyDay
-    percentReturn = calculated_return(result, sumInvestedAmount)
-    print(f"Portfolio Value: {result}€\nReturn: {percentReturn:.4f}%")
+    returnDCA = calculated_return(resultDCA, sumInvestedAmount)
+    returnBuyHold = calculated_return(resultBuyHold, investedAmount)
+    print(f"Portfolio Value: {resultDCA}€\nReturn: {returnDCA:.4f}%")
+    print(40 * "-")
+    print(f"Buy and Hold Return Percentage: {returnBuyHold:.4f}")
     
