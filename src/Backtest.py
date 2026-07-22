@@ -1,16 +1,21 @@
 """
 
 """
+from data_loader import load_price_data
 from strategies.buy_hold import sim_buy_and_hold
+from strategies.dca import sim_dca
 import pandas as pd
 
-testPrices = pd.DataFrame({"Close": [100, 110, 90, 120]})
-
-def calculated_return(portfolioValue: pd.Series) -> float:
-    CalcReturn = (portfolioValue.iloc[-1] - portfolioValue[0]) / portfolioValue[0] * 100
+def calculated_return(portfolioValue: pd.Series, investedAmount: float) -> float:
+    CalcReturn = (portfolioValue.iloc[-1] - investedAmount) / investedAmount * 100
     return CalcReturn
 
 if __name__ == "__main__":
-    simRes = sim_buy_and_hold(testPrices, 1000)
-    returnPercent = int(calculated_return(simRes))
-    print(f"{returnPercent}%")
+    investedAmount = 1000
+    importedPrices = load_price_data("AAPL", "2024-01-01", "2025-01-01")
+    result = sim_dca(importedPrices, investedAmount)
+    amountBuyDay = len(result)
+    sumInvestedAmount = investedAmount * amountBuyDay
+    percentReturn = calculated_return(result, sumInvestedAmount)
+    print(f"Portfolio Value: {result}€\nReturn: {percentReturn:.4f}%")
+    
