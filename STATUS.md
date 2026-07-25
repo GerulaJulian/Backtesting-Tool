@@ -115,7 +115,7 @@ if __name__ == "__main__":
 
 **Wichtiges Scope-Konzept, das dabei besprochen wurde:** Eine Funktion sieht NIE automatisch Variablen von außerhalb (auch nicht, wenn die Variable "vorher" im Code steht) — sie sieht nur ihre eigenen Parameter und selbst-definierte Variablen. Werte müssen explizit als Parameter übergeben werden.
 
-**`src/strategies/high_low.py`** — FERTIG (23. Juli), Datei/Funktion heißen `high_low.py`/`sim_high_low` (nicht `hoch_tief.py`, Julian hat sich für englische Namen entschieden):
+**`src/strategies/high_low.py`** — FERTIG, Datei/Funktion heißen `high_low.py`/`sim_high_low` (nicht `hoch_tief.py`, Julian hat sich für englische Namen entschieden). **Update 24. Juli:** gibt jetzt DREI Werte zurück statt zwei (dritter Wert = `investedOverTime`, laufende Summe des investierten Betrags pro Tag, für den "Investiert vs. Portfolio-Wert"-Chart in `app.py` gebraucht):
 ```python
 import pandas as pd
 
@@ -128,6 +128,8 @@ def sim_high_low(prices: pd.DataFrame, investAmount: float, lookBackWindow: int,
     sharesAmount = 0
     cashAmount = 0
     buyAmount = 0
+    invested = 0
+    investedOverTime = []
     portfolioValue = []
 
     for date in prices.index:
@@ -137,6 +139,7 @@ def sim_high_low(prices: pd.DataFrame, investAmount: float, lookBackWindow: int,
         if low:
             newShares = investAmount / price
             sharesAmount += newShares
+            invested += investAmount
             buyAmount += 1
         elif high:
             newShares = sharesAmount * userPercent
@@ -146,15 +149,16 @@ def sim_high_low(prices: pd.DataFrame, investAmount: float, lookBackWindow: int,
             pass
         currentWorth = sharesAmount * price + cashAmount
         portfolioValue.append(currentWorth)
-    return pd.Series(portfolioValue, index=prices.index), buyAmount
+        investedOverTime.append(invested)
+    return pd.Series(portfolioValue, index=prices.index), buyAmount, pd.Series(investedOverTime, index=prices.index)
 ```
-**Konzept (von Julian selbst festgelegt, da Projektbeschreibung "definierten" Tief-/Hochpunkt nicht konkret vorgibt):** Tiefpunkt = niedrigster Schlusskurs im Rolling-Fenster (`lookBackWindow` Tage, Standard 30) — funktioniert automatisch für JEDE Aktie/jeden Preisbereich. Kauft bei JEDEM Tiefpunkt-Tag nach (akkumuliert Shares, kein "nur kaufen wenn nicht schon investiert"-Gate), verkauft `userPercent` des Bestands bei jedem Hochpunkt-Tag. `userPercent` ist bereits als Parameter vorbereitet (aktuell testweise fest auf `1.0` = 100%), damit später in `app.py` nur noch echter Nutzer-Input durchgereicht werden muss statt die Funktion umzubauen. Gibt ein Tupel zurück `(portfolioValue, buyAmount)` — `buyAmount` = Anzahl tatsächlicher Käufe, wird für die Rendite-Berechnung gebraucht (Gesamtinvestition = `investAmount * buyAmount`).
+**Konzept (von Julian selbst festgelegt, da Projektbeschreibung "definierten" Tief-/Hochpunkt nicht konkret vorgibt):** Tiefpunkt = niedrigster Schlusskurs im Rolling-Fenster (`lookBackWindow` Tage, Standard 30) — funktioniert automatisch für JEDE Aktie/jeden Preisbereich. Kauft bei JEDEM Tiefpunkt-Tag nach (akkumuliert Shares, kein "nur kaufen wenn nicht schon investiert"-Gate), verkauft `userPercent` des Bestands bei jedem Hochpunkt-Tag. **Wichtig, da Rückgabewert sich geändert hat:** alle Aufrufe (`backtest.py`, `app.py`) müssen DREI Werte entgegennehmen, z.B. `result, buyAmount, investedSeries = sim_high_low(...)` — wo der dritte Wert nicht gebraucht wird (z.B. in `backtest.py`), einfach `_` als Platzhalter-Name nehmen.
 
-**`src/strategies/rsi.py`** — FERTIG (23. Juli), von Julian sehr selbstständig gebaut (RSI-Berechnung neu, Kauf/Verkauf-Schleife bewusst von `high_low.py` übernommen/angepasst, da gleiches Muster):
+**`src/strategies/rsi.py`** — FERTIG, von Julian sehr selbstständig gebaut (RSI-Berechnung neu, Kauf/Verkauf-Schleife bewusst von `high_low.py` übernommen/angepasst, da gleiches Muster). **Update 24. Juli:** analog zu `high_low.py` jetzt auch mit `investedOverTime` als drittem Rückgabewert:
 ```python
 import pandas as pd
 
-def sim_RSI(prices: pd.DataFrame, investAmount: float, period: int, userPercent: float) -> pd.Series:
+def sim_rsi(prices: pd.DataFrame, investAmount: float, period: int, userPercent: float) -> pd.Series:
     diff = prices["Close"].diff()
     gain = diff.clip(lower=0)
     avgGain = gain.rolling(period).mean()
@@ -166,6 +170,8 @@ def sim_RSI(prices: pd.DataFrame, investAmount: float, period: int, userPercent:
     sharesAmount = 0
     cashAmount = 0
     buyAmount = 0
+    invested = 0
+    investedOverTime = []
     portfolioValue = []
 
     for date in prices.index:
@@ -175,6 +181,7 @@ def sim_RSI(prices: pd.DataFrame, investAmount: float, period: int, userPercent:
         if low:
             newShares = investAmount / price
             sharesAmount += newShares
+            invested += investAmount
             buyAmount += 1
         elif high:
             newShares = sharesAmount * userPercent
@@ -184,9 +191,10 @@ def sim_RSI(prices: pd.DataFrame, investAmount: float, period: int, userPercent:
             pass
         currentWorth = sharesAmount * price + cashAmount
         portfolioValue.append(currentWorth)
-    return pd.Series(portfolioValue, index=prices.index), buyAmount
+        investedOverTime.append(invested)
+    return pd.Series(portfolioValue, index=prices.index), buyAmount, pd.Series(investedOverTime, index=prices.index)
 ```
-`period` (Standard-Idee: 14, wird später in `app.py` als Autofill-Wert mit Nutzer-Änderungsoption verwendet) ist Parameter, kein Fixwert. Kauf bei RSI < 30 (überverkauft), Verkauf von `userPercent` des Bestands bei RSI > 70 (überkauft) — exakt gleiche Kauf/Verkauf-Schleifen-Struktur wie `high_low.py`, nur andere Bedingung.
+`period` (Standard-Idee: 14, wird in `app.py` als Autofill-Wert mit Nutzer-Änderungsoption verwendet) ist Parameter, kein Fixwert. Kauf bei RSI < 30 (überverkauft), Verkauf von `userPercent` des Bestands bei RSI > 70 (überkauft).
 
 **ALLE VIER Kernstrategien aus der Projektbeschreibung sind jetzt fertig und im Vergleich integriert (Monat 4 inhaltlich abgeschlossen).** Ergebnis mit echten AAPL-2024-Daten: Buy and Hold 35.56%, DCA 22.45%, High/Low 6.84%, RSI 4.90% — plausible Reihenfolge (aktivere Strategien verpassen in einem Aufwärtstrend immer wieder Teile vom Anstieg durchs Ein-/Aussteigen).
 
@@ -214,7 +222,15 @@ Streamlit-UI wird schrittweise gebaut, Task-Liste dazu läuft im Cowork-Tool. Bi
 3. **Verknüpfung mit Strategie-Funktionen** — Button ("Test starten") lädt Daten, ruft je nach gewählter Strategie die passende `sim_*`-Funktion auf (if/elif auf den Dropdown-Text), berechnet Rendite. Getestet und mit `backtest.py`-Ergebnissen exakt abgeglichen (z.B. RSI: 4.90% in beiden identisch).
 4. **Ticker-Namenssuche mit Live-Vorschlägen** — nutzt `yfinance.Search(...).quotes` (Feld `symbol` = Ticker) KOMBINIERT mit der Zusatz-Bibliothek `streamlit-searchbox` (`pip install streamlit-searchbox`, `from streamlit_searchbox import st_searchbox`) für echtes Tippen-ohne-Enter-Verhalten. Eigene `search()`-Funktion gibt Liste von `(Anzeigetext, Ticker-Symbol)`-Tupeln zurück, `st_searchbox()` übernimmt den Rest. Funktioniert einwandfrei (getestet mit "App" → Live-Vorschläge AppLovin/Apple/Applied Materials etc.).
 
-Aktueller `app.py`-Code (Stand nach Punkt 4, gekürzt um Kommentare):
+**24. Juli — weitere Fortschritte:**
+
+5. **Plotly-Grafiken (Task 5, FERTIG):** Drei Charts im Einzel-Test-Bereich — Kursverlauf (`px.line(prices, x=prices.index, y="Close", ...)`), Portfolio-Wert über Zeit, und ein kombinierter "Investiert vs. Portfolio-Wert"-Chart (zwei Series in einem `pd.DataFrame` kombiniert, dann `px.line(df)` zeichnet automatisch pro Spalte eine Linie mit Legende).
+6. **Strategien-Vergleichs-Chart (FERTIG):** Eigener Abschnitt mit eigenem Button ("Strategien vergleichen"), führt alle 4 Strategien mit denselben Einstellungen aus, zeigt Rendite (%, nicht absolute Euro-Werte — wichtige Design-Entscheidung, siehe unten) aller 4 in einem Chart. Erfüllt Funktion 2 der Original-Projektbeschreibung ("Vergleich von Investmentstrategien") — ist also PFLICHT-Feature, keine Kür.
+   - **Wichtiger Design-Punkt (von Julian selbst erkannt):** Absolute Portfolio-Werte zwischen Strategien zu vergleichen ist unfair, weil jede Strategie unterschiedlich VIEL Geld über die Zeit investiert (Buy&Hold nur einmal, DCA/High-Low/RSI wiederholt). Lösung: Vergleich über Rendite in % (`(result - investedSeries) / investedSeries * 100`), nicht über Euro-Beträge.
+   - **Bug, der auftrat und gefixt wurde:** Formel initial falsch geschrieben als `(result / invested) - invested * 100` statt `(result - invested) / invested * 100` — durch Punkt-vor-Strich kam faktisch nur `-invested*100` raus, daher absurde Werte wie -10000%. Gefixt.
+   - **Zweites Problem, gefixt:** DCA hat nur monatliche Datenpunkte, die anderen drei täglich — beim Kombinieren in einem DataFrame entstehen dadurch `NaN`-Lücken (Plotly zeichnet bei `NaN` keine Linie → DCA sah "unsichtbar" aus). Fix: `compareData = compareData.ffill()` (forward-fill, trägt letzten bekannten Wert bis zum nächsten echten Wert weiter) — macht aus DCA eine Treppenstufen-Linie statt Lücken.
+
+Aktueller `app.py`-Code (Stand nach allen bisherigen Punkten):
 ```python
 from src.data_loader import load_price_data
 from src.strategies.buy_hold import sim_buy_hold
@@ -224,6 +240,8 @@ from src.strategies.rsi import sim_rsi
 import streamlit as st
 from streamlit_searchbox import st_searchbox
 import yfinance as yf
+import plotly.express as px
+import pandas as pd
 
 st.title("Backtesting-Tool")
 
@@ -253,16 +271,65 @@ elif strategy == "RSI":
 
 if st.button("Test starten"):
     prices = load_price_data(ticker, str(startDate), str(endDate))
-    # if/elif je nach strategy, ruft passende sim_*-Funktion auf, berechnet calcReturn
-    # zeigt Rendite mit st.write an
+    fig = px.line(prices, x=prices.index, y="Close", title="Kursverlauf", labels={"x": "Datum", "y": "Aktien Wert(€)"})
+    st.plotly_chart(fig)
+    # if/elif je nach strategy: result, invested(Series) berechnen (buy_hold/dca extern, high_low/rsi liefern investedSeries direkt mit)
+    calcReturn = (result.iloc[-1] - invested) / invested * 100
+    fig2 = px.line(x=result.index, y=result, title="Portfolio Wert(€)", ...)
+    st.plotly_chart(fig2)
+    portfolioData = pd.DataFrame({"invested": investedSeries, "portfolioValue": result})
+    fig3 = px.line(portfolioData, title="Investiert und Portfolio Wert(€)", ...)
+    st.plotly_chart(fig3)
+    st.write(f"Rendite: {calcReturn:.2f}%")
+
+if st.button("Strategien vergleichen"):
+    comparePrices = load_price_data(ticker, str(startDate), str(endDate))
+    # alle 4 Strategien ausführen, je invested-Series berechnen/entgegennehmen
+    # returnX = (resultX - investedX) / investedX * 100 pro Strategie
+    compareData = pd.DataFrame({"Buy and Hold": returnBuyHold, "DCA": returnDCA, "High and Low": returnHighLow, "RSI": returnRSI})
+    compareData = compareData.ffill()
+    figCompare = px.line(compareData, title="Strategien vergleichen | Rendite(%)")
+    st.plotly_chart(figCompare)
 ```
 
 **Bekannte kleine Baustelle:** Zeilen mit auskommentiertem alten Code (aus Iterationen) sollten noch aufgeräumt werden, kein Blocker.
 
+## Umbau auf Multipage-App — FERTIG (25. Juli)
+
+`app.py` ist jetzt kein Monolith mehr, sondern reiner Router. Neue Struktur (Ordner `sites/`, bewusst auf Projekt-ROOT-Ebene, NICHT in `src/`, und bewusst NICHT `pages/` genannt, um Streamlits ältere Auto-Page-Detection nicht zu triggern):
+
+```
+sites/home.py     — Platzhalter-Startseite (Task "Homepage mit Marktübersicht" ist separat noch offen)
+sites/single.py   — Einzelportfolio-Test (der alte "Test starten"-Bereich, 1:1 übernommen)
+sites/compare.py  — Strategien-Vergleich (der alte "Strategien vergleichen"-Bereich, 1:1 übernommen)
+```
+
+`app.py` (neuer kompletter Inhalt):
+```python
+import streamlit as st
+
+home = st.Page("sites/home.py", title="Home")
+single = st.Page("sites/single.py", title="Einzelportfolio")
+compare = st.Page("sites/compare.py", title="Vergleichen")
+
+pg = st.navigation([home, single, compare])
+pg.run()
+```
+
+**Wichtig, von Julian selbst korrekt umgesetzt:** Jede Seite läuft unabhängig (kein automatisches Teilen von Variablen zwischen Seiten), deshalb hat `single.py` UND `compare.py` jeweils ihre EIGENE Kopie der `search()`-Funktion + `ticker`/`startDate`/`endDate`/`strategy`/`investAmount`-Widgets. `session_state`-basiertes Teilen bewusst auf später verschoben (Einfachheit vor Eleganz für jetzt).
+
+**Bug gefunden + gefixt (25. Juli):** `search()` nutzte `entry['shortname']` mit eckigen Klammern — crashte mit `KeyError: 'shortname'`, weil manche `yf.Search()`-Treffer (ETFs, Indizes, Futures) diesen Key gar nicht haben. Da `st_searchbox` bei JEDEM Tastenanschlag neu sucht, führte das dazu, dass der Vorschlags-Dropdown beim Tippen plötzlich verschwand und nicht wiederkam. Fix (von Julian selbst getippt, nach Hinweis auf `.get()` statt `[...]`):
+```python
+dispResults.append((f"{entry.get('shortname', entry.get('longname', 'Die eingabe ist fehlerhaft'))} - {entry['symbol']}", entry['symbol']))
+```
+`.get(key, fallback)` gibt einen Fallback zurück statt zu crashen, wenn der Key fehlt — hier verschachtelt: erst `shortname` versuchen, sonst `longname`, sonst Fehlertext. In BEIDEN Dateien (`single.py`, `compare.py`) angewendet. Getestet, funktioniert jetzt sauber durchgängig beim Tippen.
+
+**Multipage-Umbau ist damit inhaltlich fertig und getestet.** Verbleibt: Task "Homepage mit Marktübersicht" (separat, unten) und Git-Commit.
+
 ## Nächste Schritte
 
-1. **`app.py` Task 5 — Plotly-Grafiken:** Kursverlauf + Portfolio-Value über Zeit als interaktive Charts (Hover-Details), wie in der Projektbeschreibung gefordert.
-2. **`app.py` Task 6 — Homepage:** optionale Startseite mit S&P500/Top-Gewinnern (Julians eigene Idee, nice-to-have).
-3. Git-Commit für den heutigen Fortschritt nicht vergessen (`rsi.py`, `high_low.py`, `backtest.py`-Umbau, `app.py`-Fortschritt — sehr viel seit dem letzten Commit).
-4. Später: Datums-Label-Kosmetikfehler bei DCA fixen, falls für die Präsentation echte Kaufdaten angezeigt werden sollen (kein Blocker aktuell).
-5. Julian hat Prüfer wegen Abgabetermin/Format kontaktiert (23. Juli) — Antwort abwarten und hier nachtragen sobald da.
+1. **`app.py`/`sites/home.py` Task (offen) — Homepage:** optionale Startseite mit S&P500/Top-Gewinnern (Julians eigene Idee, nice-to-have, NICHT Teil der Original-Vorgabe). Aktuell nur Platzhalter-Text.
+2. Git-Commit fällig — seit dem letzten Commit einiges passiert: Plotly-Charts, Vergleichs-Feature, `investedOverTime` in `high_low.py`/`rsi.py`, UND der komplette Multipage-Umbau (`sites/`-Ordner, neues `app.py` als Router, `search()`-Bugfix).
+3. Später: Datums-Label-Kosmetikfehler bei DCA fixen, falls für die Präsentation echte Kaufdaten angezeigt werden sollen (kein Blocker aktuell).
+4. Julian hat Prüfer wegen Abgabetermin/Format kontaktiert (23. Juli) — Antwort noch ausstehend (Stand 25. Juli).
+5. **Idee für später:** Julian würde nach Projekt-Abschluss das Tool zum Lernen nochmal in React (mit eigener API-Schicht) oder in Swift/SwiftUI nachbauen wollen — explizit NICHT fürs Schulprojekt, rein zum Selbstlernen danach.

@@ -15,6 +15,8 @@ def sim_high_low(prices: pd.DataFrame, investAmount: float, lookBackWindow: int,
     sharesAmount = 0
     cashAmount = 0
     buyAmount = 0
+    invested = 0
+    investedOverTime = []
     portfolioValue = []
 
     # checks every day if price = low or high and calculates base list
@@ -26,6 +28,7 @@ def sim_high_low(prices: pd.DataFrame, investAmount: float, lookBackWindow: int,
         if low:
             newShares = investAmount / price
             sharesAmount += newShares
+            invested += investAmount
             buyAmount += 1
         elif high:
             newShares = sharesAmount * userPercent
@@ -36,7 +39,8 @@ def sim_high_low(prices: pd.DataFrame, investAmount: float, lookBackWindow: int,
 
         currentWorth = sharesAmount * price + cashAmount
         portfolioValue.append(currentWorth)
-    return pd.Series(portfolioValue, index=prices.index), buyAmount
+        investedOverTime.append(invested)
+    return pd.Series(portfolioValue, index=prices.index), buyAmount, pd.Series(investedOverTime, index=prices.index)
         
 
 

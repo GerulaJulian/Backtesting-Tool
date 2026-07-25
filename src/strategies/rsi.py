@@ -18,6 +18,8 @@ def sim_rsi(prices: pd.DataFrame, investAmount: float, period: int, userPercent:
     sharesAmount = 0
     cashAmount = 0
     buyAmount = 0
+    invested = 0
+    investedOverTime = []
     portfolioValue = []
 
     for date in prices.index:
@@ -28,6 +30,7 @@ def sim_rsi(prices: pd.DataFrame, investAmount: float, period: int, userPercent:
         if low:
             newShares = investAmount / price
             sharesAmount += newShares
+            invested += investAmount
             buyAmount += 1
         elif high:
             newShares = sharesAmount * userPercent
@@ -38,4 +41,5 @@ def sim_rsi(prices: pd.DataFrame, investAmount: float, period: int, userPercent:
 
         currentWorth = sharesAmount * price + cashAmount
         portfolioValue.append(currentWorth)
-    return pd.Series(portfolioValue, index=prices.index), buyAmount
+        investedOverTime.append(invested)
+    return pd.Series(portfolioValue, index=prices.index), buyAmount, pd.Series(investedOverTime, index=prices.index)
