@@ -20,8 +20,8 @@ if __name__ == "__main__":
     ## Get simulated result
     resultDCA = sim_dca(importedPrices, investedAmount)
     resultBuyHold = sim_buy_hold(importedPrices, investedAmount)
-    resultHighLow, buyAmountHighLow = sim_high_low(importedPrices, investedAmount, 30, 1.0)
-    resultRSI, buyAmountRSI = sim_rsi(importedPrices, investedAmount, 14, 1.0)
+    resultHighLow, buyAmountHighLow, _ = sim_high_low(importedPrices, investedAmount, 30, 1.0)
+    resultRSI, buyAmountRSI, _ = sim_rsi(importedPrices, investedAmount, 14, 1.0)
 
     ## Calculate invested Amount
     investedBuyHold = investedAmount

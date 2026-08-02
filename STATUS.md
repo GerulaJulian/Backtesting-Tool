@@ -326,10 +326,41 @@ dispResults.append((f"{entry.get('shortname', entry.get('longname', 'Die eingabe
 
 **Multipage-Umbau ist damit inhaltlich fertig und getestet.** Verbleibt: Task "Homepage mit Marktübersicht" (separat, unten) und Git-Commit.
 
+## Homepage mit Marktübersicht — FERTIG (31. Juli)
+
+`sites/home.py` ist jetzt kein Platzhalter mehr. Enthält:
+
+1. **S&P500-Chart** (`^GSPC`, 30 Tage) in einer Box (`st.container(border=True)`), platziert in `st.columns(2)` damit die Box nicht die volle Seitenbreite einnimmt.
+2. **Top 6 Gewinner** und **Top 6 Verlierer** (letzte 30 Tage), berechnet aus einer festen `tickerList` (20 bekannte Aktien verschiedener Branchen). Für jeden Ticker wird die Prozent-Veränderung berechnet (`(letzterKurs - ersterKurs) / ersterKurs * 100`), alle Ergebnisse als `(ticker, percent, pricesSeries)`-Tupel in einer Liste gesammelt, dann mit `sorted(..., key=lambda x: x[1], reverse=True)` bzw. ohne `reverse` sortiert und mit Slicing (`[:6]`, `[:3]`, `[3:6]`) in zwei Dreier-Reihen aufgeteilt. Jede Aktie bekommt eine eigene Box mit Mini-Chart + `st.markdown(f"#### {ticker} | {percent:.2f}%")`.
+3. **`st.set_page_config(layout="wide")`** wurde in `app.py` (dem Router, NICHT in `home.py`!) ergänzt, weil Streamlit das nur einmal und nur im Entry-Point-File erlaubt — nötig, damit 3 Chart-Boxen nebeneinander genug Platz haben.
+
+**Neue Konzepte, die dabei gelernt/angewendet wurden:** `sorted()` mit `key=lambda x: x[1]` (nach zweitem Tupel-Element sortieren), List-Slicing (`liste[:6]`, `liste[3:6]`), `zip()` um zwei Listen (Spalten + Daten) parallel zu durchlaufen, `st.columns()`/`st.container(border=True)` verschachtelt für Karten-Layout, `st.set_page_config(layout="wide")`.
+
+**Kleine offene Kosmetik (kein Blocker):** Im "Top gefallen"-Block sind Variablennamen/Kommentare noch Kopien vom Gewinner-Block (z.B. `colGain` statt `colLoss`, Kommentar sagt "Top gainers") — funktioniert einwandfrei, nur verwirrend beim Lesen/Erklären. Irgendwann umbenennen.
+
+**Damit ist auch der letzte "Kür"-Punkt (Task #2) fertig — das Projekt hat jetzt ALLE Pflicht-Features UND die zusätzlichen Homepage/Multipage-Ideen von Julian umgesetzt.**
+
+## UI-Feinschliff — `single.py`/`compare.py` (1./2. August)
+
+Beide Seiten wurden nach Fertigstellung nochmal überarbeitet:
+
+- **Spalten-Layout:** Start-/Enddatum nebeneinander, Strategie-Dropdown schmal (eigene Spalte, Rest leer gelassen), `Investitionsbetrag`/`Zeitraum`/`Verkaufsanteil` in einer gemeinsamen 3er-Reihe (`st.columns(3)`) — inkl. der Erkenntnis, dass Widgets aus VERSCHIEDENEN `if`/`elif`-Zweigen trotzdem in denselben, vorher einmal erstellten Spalten landen können (`with col:` muss nicht direkt nach `st.columns()` stehen).
+- **Standard-Datumswerte:** `value=date.today() - timedelta(days=182)` (Start, ~6 Monate zurück) / `value=date.today()` (Ende) — `timedelta` kennt nur Tage, keine Kalendermonate, `182` ist eine bewusste Annäherung.
+- **Kurze Labels + `help=`-Tooltips:** lange Label-Texte (mit Tippfehlern) wurden gekürzt (z.B. `"Zeitraum(Tage)"`, `"Verkaufsanteil(%)"`), die ausführliche Erklärung wandert in den `help=`-Parameter der Widgets.
+- **Intro-Texte** unter jedem Seitentitel ergänzt (Home, Einzelportfolio, Vergleichen) — kurz, sachlich, erklären den Zweck der jeweiligen Seite.
+- **Echter Bug gefunden + gefixt in `compare.py`:** `sim_high_low`/`sim_rsi` bekamen weiterhin feste Werte (`30, 1.0` / `14, 1.0`) übergeben, obwohl jetzt echte `lookBackTime`/`userPercent`-Eingabefelder mit Tooltips angezeigt wurden — die Eingabe hatte also gar keine Wirkung. Gefixt, beide Aufrufe nutzen jetzt die Variablen.
+- **Bewusste Design-Entscheidung (nach kurzer Diskussion):** `lookBackTime`/`userPercent` bleiben in `compare.py` GETEILT (ein Wert für High-Low UND RSI), nicht pro Strategie getrennt — sonst könnte man eine Strategie durch großzügigere Parameter künstlich besser aussehen lassen als die andere, was dem Fairness-Prinzip des Vergleichs widerspricht (gleiche Logik wie die frühere Entscheidung, in % statt absoluten Euro-Werten zu vergleichen).
+
+## Beide Kosmetik-Punkte — FERTIG (2. August)
+
+- **`dca.py`:** `resample("MS")` (labelte immer mit Monatsanfang) ersetzt durch `filtered.groupby(filtered.index.to_period("M")).head(1)` — behält jetzt das ECHTE Kaufdatum (z.B. der 15./16.) als Index, Werte unverändert korrekt. Neue Konzepte dabei: `.to_period("M")`, `.groupby(...).head(1)`.
+- **`home.py`:** "Top gefallen"-Block umbenannt (`colGain`→`colLoss`, `topGainChart`→`topLossChart`, passende Kommentare) — inkl. eines kleinen Bugs, der beim Umbenennen entstand (die `zip(colGain, ...)`-Aufrufe wurden zuerst vergessen mit umzustellen, dadurch wären die Verlierer-Charts in den alten Gewinner-Spalten gelandet) — gefunden und gefixt.
+
+**Damit ist die Code-Basis jetzt wirklich 100% fertig — keine offenen technischen Punkte mehr, nur noch Git-Commit + Doku/Präsentation (Monat 6).**
+
 ## Nächste Schritte
 
-1. **`app.py`/`sites/home.py` Task (offen) — Homepage:** optionale Startseite mit S&P500/Top-Gewinnern (Julians eigene Idee, nice-to-have, NICHT Teil der Original-Vorgabe). Aktuell nur Platzhalter-Text.
-2. Git-Commit fällig — seit dem letzten Commit einiges passiert: Plotly-Charts, Vergleichs-Feature, `investedOverTime` in `high_low.py`/`rsi.py`, UND der komplette Multipage-Umbau (`sites/`-Ordner, neues `app.py` als Router, `search()`-Bugfix).
-3. Später: Datums-Label-Kosmetikfehler bei DCA fixen, falls für die Präsentation echte Kaufdaten angezeigt werden sollen (kein Blocker aktuell).
-4. Julian hat Prüfer wegen Abgabetermin/Format kontaktiert (23. Juli) — Antwort noch ausstehend (Stand 25. Juli).
-5. **Idee für später:** Julian würde nach Projekt-Abschluss das Tool zum Lernen nochmal in React (mit eigener API-Schicht) oder in Swift/SwiftUI nachbauen wollen — explizit NICHT fürs Schulprojekt, rein zum Selbstlernen danach.
+1. Git-Commit fällig — seit dem letzten Commit: komplette Homepage, `st.set_page_config(layout="wide")`, UI-Feinschliff auf `single.py`/`compare.py`, Bugfix in `compare.py`, DCA-Datumsfix, `home.py`-Umbenennung.
+2. Julian hat Prüfer wegen Abgabetermin/Format kontaktiert (23. Juli) — Antwort noch ausstehend (Stand 2. August).
+3. **Nächster großer Schritt:** Monat 6 laut Original-Fahrplan — Feinschliff, Dokumentation (separates Dokument!) und Präsentationsvorbereitung. Umfang hängt noch von der Antwort des Prüfers ab.
+4. **Idee für später:** Julian würde nach Projekt-Abschluss das Tool zum Lernen nochmal in React (mit eigener API-Schicht) oder in Swift/SwiftUI nachbauen wollen — explizit NICHT fürs Schulprojekt, rein zum Selbstlernen danach.

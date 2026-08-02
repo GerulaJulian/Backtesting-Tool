@@ -12,8 +12,10 @@ from streamlit_searchbox import st_searchbox
 import yfinance as yf
 import plotly.express as px
 import pandas as pd
+from datetime import date, timedelta
 
 st.title("Compare")
+st.write("Vergleiche alle Anlagestrategien und finde heraus welche bei dieser Aktie am sinnvollsten wäre.")
 
 def search(searchTerm):
     if not searchTerm:
@@ -24,19 +26,23 @@ def search(searchTerm):
         dispResults.append((f"{entry.get('shortname', entry.get('longname', 'Die eingabe ist fehlerhaft'))} - {entry['symbol']}", entry['symbol']))
     return dispResults
 
+# Input fields
 ticker = st_searchbox(search, placeholder="Unternehmen suchen", key="tickerSearch")
-startDate = st.date_input("Startdatum")
-endDate = st.date_input("Enddatum")
-strategy = st.selectbox("Strategie", ["Buy and Hold", "DCA", "High and Low", "RSI"])
-investAmount = st.number_input("Investitionsbetrag(€)", min_value=0.0, value=100.0)
+# column for Date selecion
+inputColStartDate, _, inputColEndDate = st.columns(3)
+with inputColStartDate:
+    startDate = st.date_input("Startdatum", value=date.today() - timedelta(days=182))
+with inputColEndDate:
+    endDate = st.date_input("Enddatum", value=date.today())
 
-if strategy == "High and Low":
-    lookBackTime = st.number_input("In welchem Zeitraum sollen höchst und tief pujnkte ermittelt", min_value=0, value=30)
-    userPercent = st.number_input("Anteil der bei Hochpunkt verkauft wird(%)", min_value=0, max_value=100, value=50)
-    userPercent = userPercent / 100
-elif strategy == "RSI":
-    lookBackTime = st.number_input("In welchem Zeitraum sollen höchst und tief pujnkte ermittelt", min_value=0, value=14)
-    userPercent = st.number_input("Anteil der bei Hochpunkt verkauft wird(%)", min_value=0, max_value=100, value=50)
+# Column for Num input
+inputColInvestAmount, inputColLookBackTime, inputColUserPercent = st.columns(3)
+with inputColInvestAmount:
+    investAmount = st.number_input("Investitionsbetrag(€)", min_value=0.0, value=100.0, help="Betrag, der bei jedem Kaufsignal investiert wird (bzw. einmalig bei Buy and Hold).")
+with inputColLookBackTime:
+    lookBackTime = st.number_input("Zeitraum(Tage)", min_value=0, value=30, help="Anzahl Tage, über die der höchste/niedrigste Kurs zur Signal-Erkennung betrachtet wird.")
+with inputColUserPercent:
+    userPercent = st.number_input("Verkaufsanteil(%)", min_value=0, max_value=100, value=50, help="Anteil des aktuellen Bestands, der bei einem Verkaufssignal verkauft wird.")
     userPercent = userPercent / 100
 
 if st.button("Strategien vergleichen"):
@@ -50,10 +56,10 @@ if st.button("Strategien vergleichen"):
     investedDCA = pd.Series(range(1, len(resultDCA) + 1), index=resultDCA.index) * investAmount
     returnDCA = (resultDCA - investedDCA) / investedDCA * 100
 
-    resultHighLow, _, investedHighLow = sim_high_low(comparePrices, investAmount, 30, 1.0)
+    resultHighLow, _, investedHighLow = sim_high_low(comparePrices, investAmount, lookBackTime, userPercent)
     returnHighLow = (resultHighLow - investedHighLow) / investedHighLow * 100
 
-    resultRSI, _, investedRSI = sim_rsi(comparePrices, investAmount, 14, 1.0)
+    resultRSI, _, investedRSI = sim_rsi(comparePrices, investAmount, lookBackTime, userPercent)
     returnRSI = (resultRSI - investedRSI) / investedRSI * 100
 
 
