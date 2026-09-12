@@ -40,7 +40,7 @@ inputColInvestAmount, inputColLookBackTime, inputColUserPercent = st.columns(3)
 with inputColInvestAmount:
     investAmount = st.number_input("Investitionsbetrag(€)", min_value=0.0, value=100.0, help="Betrag, der bei jedem Kaufsignal investiert wird (bzw. einmalig bei Buy and Hold).")
 with inputColLookBackTime:
-    lookBackTime = st.number_input("Zeitraum(Tage)", min_value=0, value=30, help="Anzahl Tage, über die der höchste/niedrigste Kurs zur Signal-Erkennung betrachtet wird.")
+    lookBackTime = st.number_input("Zeitraum(Tage)", min_value=0, value=14, help="Anzahl Tage, über die der höchste/niedrigste Kurs zur Signal-Erkennung betrachtet wird.")
 with inputColUserPercent:
     userPercent = st.number_input("Verkaufsanteil(%)", min_value=0, max_value=100, value=50, help="Anteil des aktuellen Bestands, der bei einem Verkaufssignal verkauft wird.")
     userPercent = userPercent / 100
@@ -62,7 +62,7 @@ if st.button("Strategien vergleichen"):
     resultRSI, _, investedRSI = sim_rsi(comparePrices, investAmount, lookBackTime, userPercent)
     returnRSI = (resultRSI - investedRSI) / investedRSI * 100
 
-
+    #Join seperate strats
     compareData = pd.DataFrame({
         "Buy and Hold": returnBuyHold,
         "DCA": returnDCA,
@@ -71,5 +71,12 @@ if st.button("Strategien vergleichen"):
     })
     compareData = compareData.ffill()
 
-    figCompare = px.line(compareData, title="Strategien vergleichen | Rendite(%)", labels={"x": "Datum", "y": "%"})
-    st.plotly_chart(figCompare)
+    #Chart
+    figCompare = px.line(compareData, title="Strategien vergleichen | Rendite(%)",  labels={"x": "Datum", "y": "%"})
+    st.plotly_chart(figCompare, config={"displayModeBar": False})
+
+    #flag if no data available
+    for stratName in compareData.columns:
+        checkNaN = compareData[stratName].isna().all()
+        if checkNaN == True:
+            st.warning(f"Für {stratName} gibt es in diesem Zeitraum keine Ergebnisse.")

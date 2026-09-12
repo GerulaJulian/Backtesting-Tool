@@ -58,7 +58,7 @@ colGain = st.columns(3)
 for col, (ticker, percent, prices) in zip(colGain, topGain1):
     with col:
         with st.container(border=True):
-            st.markdown(f"#### {ticker} | {percent:.2f}%")
+            st.metric(ticker, f"{prices.iloc[-1]:.2f}", delta=f"{percent:.2f}")
             topGainChart = px.line(prices, x=prices.index, y=prices, labels={"x": "Datum", "y": "Aktien Wert(€)"}, height=200)
             st.plotly_chart(topGainChart, config={"displayModeBar": False})
 # Top gainers row 2
@@ -66,7 +66,7 @@ colGain = st.columns(3)
 for col, (ticker, percent, prices) in zip(colGain, topGain2):
     with col:
         with st.container(border=True):
-            st.markdown(f"#### {ticker} | {percent:.2f}%")
+            st.metric(ticker, f"{prices.iloc[-1]:.2f}", delta=f"{percent:.2f}")
             topGainChart = px.line(prices, x=prices.index, y=prices, labels={"x": "Datum", "y": "Aktien Wert(€)"}, height=200)
             st.plotly_chart(topGainChart, config={"displayModeBar": False})
 
@@ -78,7 +78,7 @@ colLoss = st.columns(3)
 for col, (ticker, percent, prices) in zip(colLoss, topLoss1):
     with col:
         with st.container(border=True):
-            st.markdown(f"#### {ticker} | {percent:.2f}%")
+            st.metric(ticker, f"{prices.iloc[-1]:.2f}", delta=f"{percent:.2f}")
             topLossChart = px.line(prices, x=prices.index, y=prices, labels={"x": "Datum", "y": "Aktien Wert(€)"}, height=200)
             st.plotly_chart(topLossChart, config={"displayModeBar": False})
 # Top losers row 2
@@ -86,7 +86,7 @@ colLoss = st.columns(3)
 for col, (ticker, percent, prices) in zip(colLoss, topLoss2):
     with col:
         with st.container(border=True):
-            st.markdown(f"#### {ticker} | {percent:.2f}%")
+            st.metric(ticker, f"{prices.iloc[-1]:.2f}", delta=f"{percent:.2f}")
             topLossChart = px.line(prices, x=prices.index, y=prices, labels={"x": "Datum", "y": "Aktien Wert(€)"}, height=200)
             st.plotly_chart(topLossChart, config={"displayModeBar": False})
 

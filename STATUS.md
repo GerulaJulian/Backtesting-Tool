@@ -10,6 +10,8 @@ Julian ist Anfänger, wird schnell überwältigt bei zu vielen neuen Konzepten a
 
 Stand 23. Juli 2026: Mac-Migration (von Windows) ist erledigt und Julian arbeitet jetzt komplett auf dem MacBook weiter. Original-Projektbeschreibung liegt jetzt vor (`Projektbeschreibung_Backtesting-Tool.pdf`, 18. März 2026) — wichtigste Punkte unten unter "Original-Projektvorgaben".
 
+**Wichtig, mehrfach missverstanden:** Julian hat diese Projektbeschreibung SELBST verfasst (eigener Vorschlag, dann vom Prüfer akzeptiert) — sie ist NICHT von außen vorgegeben/aufgezwungen worden. Das heißt: Wahl der Programmiersprache (Python), der Bibliotheken (Pandas, Plotly, Streamlit) und der vier Strategien (Buy&Hold, DCA, RSI, High/Low) waren Julians eigene Entscheidungen — nur eben schon in der Planungs-/Vorschlagsphase getroffen, nicht erst während des Codens. Für Vorwort/Dokumentation zählt das trotzdem als "eigenständige Entscheidung".
+
 ## Original-Projektvorgaben (aus der PDF)
 
 - **Ziel:** Backtesting-Tool, Nutzer wählt Aktie/ETF, Zeitraum, Strategie → Tool zeigt erzielte Rendite. Auch Strategien-Vergleich soll möglich sein.
@@ -358,9 +360,54 @@ Beide Seiten wurden nach Fertigstellung nochmal überarbeitet:
 
 **Damit ist die Code-Basis jetzt wirklich 100% fertig — keine offenen technischen Punkte mehr, nur noch Git-Commit + Doku/Präsentation (Monat 6).**
 
+## Antwort vom Prüfer erhalten (6. August)
+
+Prof. Mag. Manfred Oberkersch (Kommissionsvorsitzender, betreut Julians BRP) hat geantwortet:
+
+- **Schriftliche Arbeit:** kann JEDERZEIT abgegeben werden, kein fixer Termin.
+- **Präsentationstermin:** noch unklar — der bisherige Kommissionsvorsitzende geht in Pension, der neue legt die Termine im Herbst fest. Also aktuell kein Zeitdruck, aber auch noch kein konkretes Datum.
+- **Format schriftliche Arbeit:** er gibt immer die Vorlage für eine normale Diplomarbeit vor, Julian soll sich "so ähnlich wie möglich" daran halten. Die Vorlage wurde als Datei mitgeschickt: `DA Buch HTL Wien West (doppelseitig).dotx` (liegt im Projekt-Uploads-Ordner, noch nicht inhaltlich mit Julian durchgegangen).
+- **Format Präsentation:** komplett freigestellt, einzige Vorgabe: "nicht zu viel Text und gut lesbar".
+
+**Bedeutet für die Planung:** kein Abgabedruck mehr, Julian kann Doku + Präsentation in Ruhe angehen. Nächster sinnvoller Schritt ist, die `.dotx`-Vorlage gemeinsam durchzugehen und eine Struktur für die schriftliche Arbeit daraus abzuleiten.
+
+## Weiterer UI-Feinschliff — `single.py`/`compare.py` (nach dem 6. August)
+
+- **`single.py`:** Text-Ausgabe der Ergebnisse (Investiert/Portfolio-Wert/Gewinn) komplett auf `st.metric()` umgestellt (drei Kacheln in `st.columns(3)`, dritte mit `delta=` für automatischen grün/rot-Pfeil je nach Gewinn/Verlust) — deutlich cleaner als der alte Text-Satz. Nebenbei zwei Bugs gefunden+gefixt: `winOrLoss = result - invested` benutzte `result` (ganze Serie) statt `result.iloc[-1]` (Endwert) → `ValueError: truth value of a Series is ambiguous`; dazu mehrere `st.wirte`-Tippfehler statt `st.write`.
+- **`compare.py`:** Neues Problem entdeckt — wenn der geteilte `lookBackTime`-Wert für RSI ungewöhnlich groß ist, kann es sein, dass RSI nie unter 30/über 70 rutscht → nie ein Kaufsignal → `invested` bleibt 0 → Division durch 0 → ganze Spalte in `compareData` ist `NaN` → Linie im Chart unsichtbar (nur in der Legende sichtbar). Gefixt mit einer Schleife über `compareData.columns`, die per `.isna().all()` erkennt, ob eine Strategie-Spalte komplett leer ist, und dann `st.warning(f"Für {stratName} gibt es in diesem Zeitraum keine Ergebnisse.", icon="⚠️")` anzeigt statt eine stillschweigend leere Linie.
+- **`px.line(...)` vs. `st.plotly_chart(...)`:** `config={"displayModeBar": False}` gehört zu `st.plotly_chart()`, nicht zu `px.line()` — Verwechslung gefunden+gefixt.
+- **Eigenes Farbschema:** Julian hat über `.streamlit/config.toml` ein individuelles (lila/bordeaux) Theme eingerichtet, inkl. Seitentitel in der Navigation umbenannt ("Einzel Simulation", "Strategien Vergleichen").
+
+**Design/UI ist damit aus Julians Sicht fertig ("sooo passt es").**
+
+## Schriftliche Dokumentation (Diplomarbeit-Text) — Fortschritt (Stand 4. September)
+
+Struktur folgt der Prüfer-Vorlage `DA Buch HTL Wien West (doppelseitig).dotx` (liegt in Uploads). Reihenfolge laut Vorlage: Kurzfassung → Abstract → Vorwort → Inhaltsverzeichnis (automatisch) → Danksagung → Einleitung → Hauptteile → Zusammenfassung.
+
+**Wichtig:** Julian hat die ORIGINAL-PROJEKTBESCHREIBUNG (die PDF mit Technologien/Strategien-Vorgaben) SELBST verfasst, nicht der Prüfer sie ihm auferlegt — s. Hinweis weiter oben bei "Original-Projektbeschreibung".
+
+Bisheriger Stand:
+- **Kurzfassung** — FERTIG (ca. 1 Seite, deckt Motivation/Problem/Lösung/Technologien/Strategien/finale Version ab).
+- **Abstract** — FERTIG (englische Übersetzung der Kurzfassung, bereits im Dokument, von Julian selbst geschrieben/übersetzt).
+- **Vorwort** — FERTIG (zwei Absätze: Motivation zur Themenwahl, größte Herausforderung bei der Entwicklung). Bewusst OHNE Dank-Absatz (siehe unten).
+- **Danksagung** (eigener Abschnitt laut Vorlage, getrennt vom Vorwort) — Julian hat sich bewusst dagegen entschieden (kein Dank an Prüfer, da kaum Kontakt bestand; Familie explizit nicht erwähnenswert für Julian persönlich). Abschnitt bleibt leer/wird ausgelassen.
+- **Einleitung Teil 1+2** — FERTIG (Thema/Hintergrund + Ziel/Relevanz/Themenstellung, inkl. Grammatik-Korrekturrunde). Teil 3 (Kapitelübersicht) war zurückgestellt, bis Hauptteil-Struktur feststeht — steht jetzt (siehe unten), also als nächstes dran.
+- **Hauptteil-Kapitelstruktur (10. September festgelegt):** 4 Kapitel statt der Vorlagen-Platzhalter "Hauptteil #1"/"#2" (die Vorlage erlaubt beliebig viele, "Hauptteil #2" in der Vorlage ist nur eine Formatierungs-Demo, kein Pflichtinhalt):
+  1. Theoretische Grundlagen (Backtesting-Konzept, Lookahead-Bias, die vier Strategien erklärt)
+  2. Technologien (Python, Pandas, Plotly, Streamlit, yfinance — kurz vorgestellt/begründet)
+  3. Umsetzung (Architektur: data_loader, Strategie-Module, Multipage-UI, wichtige Design-Entscheidungen)
+  4. Ergebnisse (Beispiel-Backtests, Strategien-Vergleich, Einordnung der Ergebnisse)
+- **Einleitung** — komplett FERTIG (Teil 1, 2 und 3/Kapitelübersicht alle geschrieben und korrigiert).
+- **Kapitel 1 (Theoretische Grundlagen), Unterkapitel 1.1 "Was ist Backtesting?"** — FERTIG (11. September). Unterteilt in 1.1 Backtesting-Konzept + 1.2 die vier Strategien (je eigenes Unterkapitel: Buy&Hold, DCA, RSI, High/Low, in dieser Reihenfolge = einfachste zuerst).
+- **1.2.1 Buy and Hold** — FERTIG (Text + Formel: Anteile = Investitionsbetrag / Kurs_Start, Portfoliowert_t = Anteile × Kurs_t). Als nächstes: 1.2.2 DCA.
+
+## WICHTIG: Word vs. Google Docs (11./12. September)
+
+Julian schreibt die komplette Arbeit bisher in **Google Docs** (hat die `.dotx`-Vorlage vom Prüfer dort importiert/geöffnet — Formatvorlagen sollten dadurch größtenteils erhalten sein). Versuch, auf Word umzusteigen ist gescheitert ("alles kaputt", frustrierend, Word/Formel-Editor hat nicht funktioniert wie erwartet). **Entscheidung: Julian schreibt vorerst WEITER in Google Docs.** Die Übertragung in die eigentliche Word-Datei (falls überhaupt nötig — evtl. reicht auch der Download als .docx aus Google Docs am Ende) ist ein SEPARATES Thema für einen ruhigeren Moment, NICHT mit dem eigentlichen Schreiben vermischen. Bei zukünftigem Formel-Bedarf: Google Docs hat einen eigenen Formel-Editor unter Einfügen → Formel.
+- **Einleitung** — IN ARBEIT (Stand 4. September). Hat drei Pflicht-Teile laut Vorlage: (1) Kurzbeschreibung Thema/Hintergrund, (2) Beschreibung der Leistung/Ziel, (3) Kapitelübersicht (bewusst zurückgestellt, bis Hauptteil-Kapitelstruktur feststeht).
+
 ## Nächste Schritte
 
-1. Git-Commit fällig — seit dem letzten Commit: komplette Homepage, `st.set_page_config(layout="wide")`, UI-Feinschliff auf `single.py`/`compare.py`, Bugfix in `compare.py`, DCA-Datumsfix, `home.py`-Umbenennung.
-2. Julian hat Prüfer wegen Abgabetermin/Format kontaktiert (23. Juli) — Antwort noch ausstehend (Stand 2. August).
-3. **Nächster großer Schritt:** Monat 6 laut Original-Fahrplan — Feinschliff, Dokumentation (separates Dokument!) und Präsentationsvorbereitung. Umfang hängt noch von der Antwort des Prüfers ab.
-4. **Idee für später:** Julian würde nach Projekt-Abschluss das Tool zum Lernen nochmal in React (mit eigener API-Schicht) oder in Swift/SwiftUI nachbauen wollen — explizit NICHT fürs Schulprojekt, rein zum Selbstlernen danach.
+1. Git-Commit fällig — seit dem letzten Commit: komplette Homepage, `st.set_page_config(layout="wide")`, UI-Feinschliff auf `single.py`/`compare.py`, mehrere Bugfixes, DCA-Datumsfix, `home.py`-Umbenennung, `st.metric()`-Umstellung, NaN-Warnung in `compare.py`, eigenes Farbschema.
+2. **Nächster großer Schritt:** Monat 6 laut Original-Fahrplan — Dokumentation der schriftlichen Arbeit anhand der `.dotx`-Vorlage vom Prüfer, danach Präsentationsvorbereitung (frei im Format, nur "nicht zu viel Text, gut lesbar").
+3. **Idee für später:** Julian würde nach Projekt-Abschluss das Tool zum Lernen nochmal in React (mit eigener API-Schicht) oder in Swift/SwiftUI nachbauen wollen — explizit NICHT fürs Schulprojekt, rein zum Selbstlernen danach.

@@ -36,7 +36,7 @@ with inputColEndDate:
     endDate = st.date_input("Enddatum", value=date.today())
 
 # Column for Strategy selection
-inputColStrategy, _, _, _, _ = st.columns(5)
+inputColStrategy, _, _ = st.columns(3)
 with inputColStrategy:  
     strategy = st.selectbox("Strategie", ["Buy and Hold", "DCA", "High and Low", "RSI"], help="Buy and Hold: einmaliger Kauf zu Beginn, kein Verkauf. DCA: fester Betrag wird monatlich investiert. High and Low: Kauf bei Tiefpunkten, Verkauf bei Hochpunkten im gewählten Zeitraum. RSI: Kauf bei überverkauftem Markt (RSI < 30), Verkauf bei überkauftem Markt (RSI > 70).")
 
@@ -55,7 +55,7 @@ with inputColUserPercent:
 if st.button("Test starten"):
     prices = load_price_data(ticker, str(startDate), str(endDate))
     chartSingle = px.line(prices, x=prices.index, y="Close", title="Kursverlauf", labels={"x": "Datum", "y": "Aktien Wert(€)"})
-    st.plotly_chart(chartSingle)
+    st.plotly_chart(chartSingle, config={"displayModeBar": False})
     if strategy == "Buy and Hold":
         result = sim_buy_hold(prices, investAmount)
         invested = investAmount
@@ -72,15 +72,21 @@ if st.button("Test starten"):
         invested = investAmount * buyAmount
 
     calcReturn = (result.iloc[-1] - invested) / invested * 100
-    fig2 = px.line(x=result.index, y=result, title="Portfloio Wert(€)", labels={"x": "Datum", "y": "Portfolio Wert(€)"})
-    st.plotly_chart(fig2)
-
+    winOrLoss = result.iloc[-1] - invested
+    st.write("Daten für ", ticker)
+    invCol, worCol, wLRCol = st.columns(3)
+    invCol.metric("Investiert", f"{invested:.2f}€")
+    worCol.metric("Portfolio Wert", f"{result.iloc[-1]:.2f}€")
+    if winOrLoss >= 1:
+        wLRCol.metric("Gewinn", f"{winOrLoss:.2f}€", delta=f"{calcReturn:.2f}%")
+    elif winOrLoss <= 1:
+        wLRCol.metric("Verlust", f"{winOrLoss:.2f}€", delta=f"{calcReturn:.2f}%")
+    else:
+        wLRCol.metric("Kein Gewinn oder Verlust", f"{winOrLoss:.2f}€", delta=f"{calcReturn:.2f}%")
+    
     portfolioData = pd.DataFrame({
         "invested": investedSeries,
         "portfolioValue": result
     })
     fig3 = px.line(portfolioData, title="Investiert und Portfolio Wert(€)", labels={"x": "Datum", "y": "€"})
-    st.plotly_chart(fig3)
-
-    st.write("Daten für ", ticker)
-    st.write(f"Rendite: {calcReturn:.2f}%")
+    st.plotly_chart(fig3, config={"displayModeBar": False})
