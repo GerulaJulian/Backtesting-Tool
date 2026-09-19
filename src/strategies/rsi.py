@@ -1,5 +1,5 @@
 """
-Beschreibung: Rsi...
+Beschreibung: Berechnung durch RSI-wert, Wird erhalten durch berechung der summe aller gewinne / anzahl der tage, summe aller verluste / anzahl der tage. Anschließend in formel rein die RS-wert berechnet und anschlißend in RSI rein
 """
 
 import pandas as pd
