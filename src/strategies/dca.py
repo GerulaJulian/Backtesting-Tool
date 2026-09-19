@@ -1,5 +1,5 @@
 """
-Beschreibung: DCA strategie
+Beschreibung: DCA strategie, monatlicher kauf selber Tag(15 oder nächster Börsentag)
 """
 
 import pandas as pd
