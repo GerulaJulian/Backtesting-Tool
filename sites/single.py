@@ -141,4 +141,4 @@ if st.button("Test starten"):
                                 "gridcolor": "#5E3122", 
                                 "tickfont" : {"color": "#5E3122"},
                             })
-    st.plotly_chart(fig3, config={"displayModeBar": False})
+    st.plotly_chart(fig2, config={"displayModeBar": False})
