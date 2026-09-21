@@ -53,7 +53,7 @@ tickerList = (
     "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",
     "TSLA", "META", "NFLX", "AMD", "INTC",
     "JPM", "V", "DIS", "KO", "PFE",
-    "XOM", "BA", "WMT", "NKE", "ADBE"
+    "XOM", "BA", "SPOT", "NKE", "ADBE"
 )
 priceList = load_price_data_multi(tickerList, startdate, enddate, currency=selCur)
 
@@ -76,7 +76,7 @@ topLoss2 = topLoss[3:6]
 
 # Top gainers
 st.subheader("Top gestiegen")
-st.write("Aktien welche in den letzten 30 Tagen besonders gestigen sind")
+st.write("Aktien welche in den letzten 30 Tagen besonders gestiegen sind")
 # Top gainers row 1 
 colGain = st.columns(3)
 for col, (ticker, percent, prices) in zip(colGain, topGain1):
@@ -186,3 +186,6 @@ for col, (ticker, percent, prices) in zip(colLoss, topLoss2):
             topLossChart.update_traces(line=dict(color= "#000000"))
             st.plotly_chart(topLossChart, config={"displayModeBar": False}, key=f"topLoss_{ticker}")
 
+with st.expander("Wie werden die Homepage Aktien ausgewählt?"):
+    st.write("Die Homepage Aktien gehören einer Liste von insgesamt 20 Aktien an. Unter anderem sind in dieser populäre und interessante Aktien enthalten.")
+    st.caption("Zu diesen gehören: Apple Inc. | Microsoft Corporation | Alphabet Inc. | Amazon.com Inc. | NVIDIA Corporation | Tesla Inc. | Meta Platforms Inc. | Netflix Inc. | Advanced Micro Devices Inc. | Intel Corporation | JPMorgan Chase & Co. | Visa Inc. | The Walt Disney Company | The Coca-Cola Company | Pfizer Inc. | Exxon Mobil Corporation | The Boeing Company | Spotify Technology S.A. | NIKE Inc. | Adobe Inc.")

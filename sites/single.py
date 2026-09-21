@@ -40,7 +40,7 @@ with inputColStartDate:
         pass
     startDate = st.date_input("Startdatum", value=date.today() - timedelta(days=182), min_value=launchDate ,max_value=date.today() - timedelta(days=1))
 with inputColEndDate:
-    endDate = st.date_input("Enddatum", value=date.today(), min_value=launchDate, max_value=date.today())
+    endDate = st.date_input("Enddatum", value=date.today(), min_value=startDate, max_value=date.today())
 
 # Column for Strategy selection
 inputColStrategy, _, _ = st.columns(3)
@@ -59,7 +59,7 @@ with inputColInvestAmount:
 inputColLookBackTime, inputColUserPercent, _ = st.columns(3)
 with inputColLookBackTime:
     if strategy == "High and Low" or strategy == "RSI":
-        lookBackTime = st.number_input("Zeitraum(Tage)", min_value=0, value=30, help="Anzahl Tage, über die der höchste/niedrigste Kurs zur Signal-Erkennung betrachtet wird.")
+        lookBackTime = st.number_input("Zeitraum(Tage)", min_value=2, value=30, help="Anzahl Tage, über die der höchste/niedrigste Kurs zur Signal-Erkennung betrachtet wird.")
 with inputColUserPercent:
     if strategy == "High and Low" or strategy == "RSI":
         userPercent = st.number_input("Verkaufsanteil(%)", min_value=0, max_value=100, value=50, help="Anteil des aktuellen Bestands, der bei einem Verkaufssignal verkauft wird.")
@@ -72,6 +72,17 @@ if st.button("Test starten"):
         st.stop()
 
     prices = load_price_data(ticker, str(startDate), str(endDate), currency=selCur)
+    pricesLen = len(prices)
+
+    if pricesLen <= 2:
+        st.warning("Dieser Zeitraum ist zu kurz.")
+        st.stop()
+
+    if strategy == "High and Low" or strategy == "RSI":
+        if lookBackTime >= pricesLen:
+            st.warning("Für diesen Zeitraum gibt es nicht genug Daten.")
+            st.stop()
+
     chartSingle = px.line(prices, x=prices.index, y="Close", title="Kursverlauf")
     chartSingle.update_layout(
                         plot_bgcolor="#F9D2BA", 
@@ -91,6 +102,8 @@ if st.button("Test starten"):
                             })
     chartSingle.update_traces(line=dict(color= "#000000"))
     st.plotly_chart(chartSingle, config={"displayModeBar": False})
+
+## Calculations
     if strategy == "Buy and Hold":
         result = sim_buy_hold(prices, investAmount)
         invested = investAmount
@@ -106,18 +119,22 @@ if st.button("Test starten"):
         result, buyAmount, investedSeries = sim_rsi(prices, investAmount, lookBackTime, userPercent)
         invested = investAmount * buyAmount
 
+    if invested == 0:
+        st.warning("In diesem Zeitraum konnte nicht investiert werden")
+        st.stop()
+
     calcReturn = (result.iloc[-1] - invested) / invested * 100
     winOrLoss = result.iloc[-1] - invested
-    st.write("Daten für ", ticker)
+
+    st.subheader(f"Daten für {ticker}")
+
     invCol, worCol, wLRCol = st.columns(3)
     invCol.metric("Investiert", f"{invested:.2f} {selCur}")
     worCol.metric("Portfolio Wert", f"{result.iloc[-1]:.2f} {selCur}")
-    if winOrLoss >= 1:
+    if winOrLoss >= 0:
         wLRCol.metric("Gewinn", f"{winOrLoss:.2f} {selCur}", delta=f"{calcReturn:.2f}%")
-    elif winOrLoss <= 1:
+    elif winOrLoss <= 0:
         wLRCol.metric("Verlust", f"{winOrLoss:.2f} {selCur}", delta=f"{calcReturn:.2f}%")
-    else:
-        wLRCol.metric("Kein Gewinn oder Verlust", f"{winOrLoss:.2f} {selCur}", delta=f"{calcReturn:.2f}%")
     
     portfolioData = pd.DataFrame({
         "invested": investedSeries,
@@ -128,7 +145,6 @@ if st.button("Test starten"):
                         plot_bgcolor="#F9D2BA", 
                         template="plotly_dark", 
                         title_font={"color": "#5E3122"},
-                        legend_title_text="Strategie",
                         xaxis_title= "Datum", 
                         xaxis={
                                 "title": {"font": {"color": "#5E3122"}},

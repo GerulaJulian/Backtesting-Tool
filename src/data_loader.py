@@ -10,6 +10,8 @@ import yfinance as yf
 @st.cache_data(ttl=3600, show_spinner="Kursdaten werden geladen...")
 def load_price_data(ticker: str, start: str, end: str, currency: str = "EUR"):
     df = yf.download(ticker, start=start, end=end, auto_adjust=True)
+    if df.empty:
+        return df
     df.columns = df.columns.get_level_values(0)
 
     if currency != "USD":
@@ -59,6 +61,3 @@ def load_forex_data(curCode: str, start: str, end: str):
         forex = forex.squeeze("columns")
 
     return forex
-
-if __name__ == "__main__":
-    stockData = load_price_data("AAPL", "2024-01-01", "2025-01-01")

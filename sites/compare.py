@@ -15,7 +15,7 @@ import plotly.express as px
 import pandas as pd
 from datetime import date, timedelta
 
-st.title("Compare")
+st.title("Vergleichen")
 st.write("Vergleiche alle Anlagestrategien und finde heraus welche bei dieser Aktie am sinnvollsten wäre.")
 
 def search(searchTerm):
@@ -40,7 +40,7 @@ with inputColStartDate:
         pass
     startDate = st.date_input("Startdatum", value=date.today() - timedelta(days=182), min_value=launchDate ,max_value=date.today() - timedelta(days=1))
 with inputColEndDate:
-    endDate = st.date_input("Enddatum", value=date.today(), min_value= launchDate, max_value=date.today())
+    endDate = st.date_input("Enddatum", value=date.today(), min_value=startDate, max_value=date.today())
 
 # Column for Num input
 inputColInvestAmount, _ = st.columns([0.5, 0.5], gap=None)
@@ -53,7 +53,7 @@ with inputColInvestAmount:
 
 inputColLookBackTime, inputColUserPercent, _ = st.columns(3)
 with inputColLookBackTime:
-    lookBackTime = st.number_input("Zeitraum(Tage)", min_value=0, value=30, help="Anzahl Tage, über die der höchste/niedrigste Kurs zur Signal-Erkennung betrachtet wird.")
+    lookBackTime = st.number_input("Zeitraum(Tage)", min_value=2, value=30, help="Anzahl Tage, über die der höchste/niedrigste Kurs zur Signal-Erkennung betrachtet wird.")
 with inputColUserPercent:
     userPercent = st.number_input("Verkaufsanteil(%)", min_value=0, max_value=100, value=50, help="Anteil des aktuellen Bestands, der bei einem Verkaufssignal verkauft wird.")
     userPercent = userPercent / 100
@@ -64,6 +64,14 @@ if st.button("Strategien vergleichen"):
         st.stop()
 
     comparePrices = load_price_data(ticker, str(startDate), str(endDate), currency=selCur)
+    comparePricesLen = len(comparePrices)
+
+    if comparePricesLen <= 2:
+        st.warning("Dieser Zeitraum ist zu kurz.")
+        st.stop()
+    elif lookBackTime >= comparePricesLen:
+        st.warning("Für diesen Zeitraum gibt es nicht genug Daten.")
+        st.stop()
 
     resultBuyHold = sim_buy_hold(comparePrices, investAmount)
     investedBuyHold = pd.Series(investAmount, index=resultBuyHold.index)
@@ -72,7 +80,6 @@ if st.button("Strategien vergleichen"):
     resultDCA = sim_dca(comparePrices, investAmount)
     investedDCA = pd.Series(range(1, len(resultDCA) + 1), index=resultDCA.index) * investAmount
     returnDCA = (resultDCA - investedDCA) / investedDCA * 100
-
 
     resultHighLow, buyAmountHighLow, investedHighLow = sim_high_low(comparePrices, investAmount, lookBackTime, userPercent)
     returnHighLow = (resultHighLow - investedHighLow) / investedHighLow * 100
@@ -112,7 +119,12 @@ if st.button("Strategien vergleichen"):
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Buy and Hold", f"{resultBuyHold.iloc[-1]:.2f} {selCur}", delta=f"{returnBuyHold.iloc[-1]:.2f}%")
-    col2.metric("DCA", f"{resultDCA.iloc[-1]:.2f} {selCur}", delta=f"{returnDCA.iloc[-1]:.2f}%")
+    with col2:
+        if returnDCA.empty:
+            st.metric("DCA", "Kein Kauf")
+            st.caption("Kein Kauf in dem gewählten Zeitraum.")
+        else:
+            col2.metric("DCA", f"{resultDCA.iloc[-1]:.2f} {selCur}", delta=f"{returnDCA.iloc[-1]:.2f}%")
     with col3:
         if buyAmountHighLow == 0:
             st.metric("High/Low", "Kein Kauf")
@@ -130,16 +142,21 @@ if st.button("Strategien vergleichen"):
     st.subheader("Investiert")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Buy and Hold", f"{investedBuyHold.iloc[-1]:.2f} {selCur}")
-    col2.metric("DCA", f"{investedDCA.iloc[-1]:.2f} {selCur}")
+    with col2:
+        if returnDCA.empty:
+            st.metric("DCA", "Kein Kauf")
+            st.caption("Kein Kauf in dem gewählten Zeitraum.")
+        else:
+            col2.metric("DCA", f"{investedDCA.iloc[-1]:.2f} {selCur}")
     with col3:
-            if buyAmountHighLow == 0:
-                st.metric("High/Low", "Kein Kauf")
-                st.caption("Kein Kauf in dem gewählten Zeitraum.")
-            else:       
-                col3.metric("High/Low", f"{investedHighLow.iloc[-1]:.2f} {selCur}")
+        if buyAmountHighLow == 0:
+            st.metric("High/Low", "Kein Kauf")
+            st.caption("Kein Kauf in dem gewählten Zeitraum.")
+        else:       
+            col3.metric("High/Low", f"{investedHighLow.iloc[-1]:.2f} {selCur}")
     with col4:
-            if investedRSI.iloc[-1] == 0:
-                st.metric("RSI", "Kein Kauf")
-                st.caption("Kein Kauf in dem gewählten Zeitraum.")
-            else:       
-                col4.metric("RSI", f"{investedRSI.iloc[-1]:.2f} {selCur}")
+        if investedRSI.iloc[-1] == 0:
+            st.metric("RSI", "Kein Kauf")
+            st.caption("Kein Kauf in dem gewählten Zeitraum.")
+        else:       
+            col4.metric("RSI", f"{investedRSI.iloc[-1]:.2f} {selCur}")
